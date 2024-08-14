@@ -1,0 +1,74 @@
+import numpy as np
+
+# Генерация случайных данных
+np.random.seed(42)
+X = np.random.randn(1000, 2)
+y = (X[:, 0] * X[:, 1] > 0).astype(int).reshape(-1, 1)  # Метки 0 или 1
+
+# Определение размеров
+input_size = 2
+hidden_size = 4
+output_size = 1
+learning_rate = 0.1
+epochs = 1000
+
+# Инициализация весов
+W1 = np.random.randn(input_size, hidden_size)
+b1 = np.zeros((1, hidden_size))
+W2 = np.random.randn(hidden_size, output_size)
+b2 = np.zeros((1, output_size))
+
+# Функции активации
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    s = sigmoid(x)
+    return s * (1 - s)
+
+# Обучение
+for epoch in range(epochs):
+    # Прямое распространение
+    z1 = np.dot(X, W1) + b1
+    a1 = sigmoid(z1)
+    z2 = np.dot(a1, W2) + b2
+    a2 = sigmoid(z2)
+
+    # Вычисление потерь
+    loss = np.mean((a2 - y) ** 2)
+
+    # Обратное распространение
+    d_loss_a2 = 2 * (a2 - y) / y.size
+    d_a2_z2 = sigmoid_derivative(z2)
+    d_z2_W2 = a1
+
+    d_loss_W2 = np.dot(d_z2_W2.T, d_loss_a2 * d_a2_z2)
+    d_loss_b2 = np.sum(d_loss_a2 * d_a2_z2, axis=0, keepdims=True)
+
+    d_z2_a1 = W2
+    d_a1_z1 = sigmoid_derivative(z1)
+    d_z1_W1 = X
+
+    d_loss_W1 = np.dot(d_z1_W1.T, (np.dot(d_loss_a2 * d_a2_z2, d_z2_a1.T) * d_a1_z1))
+    d_loss_b1 = np.sum((np.dot(d_loss_a2 * d_a2_z2, d_z2_a1.T) * d_a1_z1), axis=0, keepdims=True)
+
+    # Обновление весов
+    W2 -= learning_rate * d_loss_W2
+    b2 -= learning_rate * d_loss_b2
+    W1 -= learning_rate * d_loss_W1
+    b1 -= learning_rate * d_loss_b1
+
+    if epoch % 100 == 0:
+        print(f"Эпоха {epoch}, Потеря: {loss}")
+
+# Тестирование
+test_samples = np.array([[0.5, -0.5], [-1, -1], [1, 1], [-0.5, 0.5]])
+z1 = np.dot(test_samples, W1) + b1
+a1 = sigmoid(z1)
+z2 = np.dot(a1, W2) + b2
+a2 = sigmoid(z2)
+predictions = (a2 > 0.5).astype(int)
+
+print("Тестовые результаты:")
+for sample, prediction in zip(test_samples, predictions):
+    print(f"Вход: {sample}, Предсказание: {prediction[0]}")
